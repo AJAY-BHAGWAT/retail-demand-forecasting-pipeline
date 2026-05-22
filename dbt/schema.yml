@@ -1,0 +1,85 @@
+version: 2
+
+sources:
+  - name: retail
+    description: "Raw retail sales data loaded from synthetic_sales.csv"
+    tables:
+      - name: synthetic_sales
+        description: "500K+ daily transaction records across 50 stores and 200 products"
+        columns:
+          - name: date
+            description: "Transaction date"
+            tests:
+              - not_null
+          - name: store_id
+            description: "Store identifier — format STORE_001 to STORE_050"
+            tests:
+              - not_null
+          - name: product_id
+            description: "Product identifier — format PROD_0001 to PROD_0200"
+            tests:
+              - not_null
+          - name: quantity
+            description: "Units sold"
+            tests:
+              - not_null
+          - name: revenue
+            description: "Transaction revenue (quantity × unit_price)"
+            tests:
+              - not_null
+
+models:
+  - name: stg_sales
+    description: >
+      Staging model: cleans raw sales CSV, casts types, removes nulls and invalid rows.
+      One row per store × product × day.
+    columns:
+      - name: sale_date
+        description: "Cleaned transaction date"
+        tests:
+          - not_null
+      - name: store_id
+        description: "Cleaned store identifier (uppercased)"
+        tests:
+          - not_null
+      - name: product_id
+        description: "Cleaned product identifier (uppercased)"
+        tests:
+          - not_null
+      - name: quantity
+        description: "Units sold — positive integers only"
+        tests:
+          - not_null
+      - name: revenue
+        description: "Transaction revenue — positive only"
+        tests:
+          - not_null
+
+  - name: mart_weekly_sales
+    description: >
+      Mart model: aggregates stg_sales to store + week level.
+      Primary input for Prophet and ARIMA forecasting models and Power BI dashboard.
+      Includes rolling averages, WoW growth, and lag features.
+    columns:
+      - name: week_start
+        description: "Monday of the ISO week — primary time dimension"
+        tests:
+          - not_null
+      - name: store_id
+        description: "Store identifier"
+        tests:
+          - not_null
+      - name: total_revenue
+        description: "Sum of revenue for the store in the given week"
+        tests:
+          - not_null
+      - name: total_quantity
+        description: "Sum of units sold for the store in the given week"
+        tests:
+          - not_null
+      - name: transaction_count
+        description: "Number of individual transactions"
+        tests:
+          - not_null
+      - name: rolling_4w_avg_revenue
+        description: "4-week rolling average revenue (current week inclusive)"
